@@ -8,3 +8,5 @@ setwd("C:/Users/Loïs/Dropbox/RCoronavirus")
 library(shiny)
 runApp("COVIDiStress-Shiny")
 ````
+
+To make the code run faster check line 15 of `server.R`

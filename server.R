@@ -5,21 +5,21 @@ server <- function(input, output, session) {
   
   # Creating Variables ----
   
-  #if(file.exists("../Unique_CountryName_full.csv"))
-  #{
+  if(file.exists("../Unique_CountryName_full.csv"))
+  {
     Unique_CountryName_full <- read.csv("../Unique_CountryName_full.csv", header = T, stringsAsFactors = F)$x
-  #}else{
-  #  Unique_CountryName_full <- unique(toTitleCase(tolower(data$Country)))
-  #  Unique_CountryName_full <- sort(Unique_CountryName_full[Unique_CountryName_full!=""])
-  #  Unique_CountryName_full <- c(Unique_CountryName_full, "World")
+  }else{
+    Unique_CountryName_full <- unique(toTitleCase(tolower(data$Country)))
+    Unique_CountryName_full <- sort(Unique_CountryName_full[Unique_CountryName_full!=""])
+    Unique_CountryName_full <- c(Unique_CountryName_full, "World")
     #execute the following line to speed up the process (not generate country names at every run)
     #write.csv(Unique_CountryName_full,"Unique_CountryName_full.csv", row.names = TRUE)
-  #}
+  }
   
   updateSelectizeInput(session, 'CountryChoice', choices = Unique_CountryName_full, server = TRUE,
                        selected=c("France", "Italy"))
   
-  #Beginning of the dynamic part
+  #Beginning of the dynamic part ----
   observeEvent({
     input$CountryChoice
   },{
@@ -27,7 +27,7 @@ server <- function(input, output, session) {
   country_list <- input$CountryChoice
   #country_list <- c("France", "Italy")
     
-  #Generating Gender 100% barplot ----
+  #Generating Gender 100% barplot (by @ggautreau) ---- 
   
   
     
@@ -57,7 +57,7 @@ server <- function(input, output, session) {
   
   
   output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })
-  output$PlotGender100<-renderPlot({pGender100})
+  #output$PlotGender100<-renderPlot({pGender100})
   
   })
 }

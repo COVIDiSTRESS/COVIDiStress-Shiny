@@ -22,8 +22,8 @@ ui <- fluidPage(
                         ),
                         mainPanel(
                           tabsetPanel(
-                            tabPanel("Genderly", plotlyOutput("PlotlyGender100")),
-                            tabPanel("Gender", plotOutput("PlotGender100")),
+                            tabPanel("Gender Distribution", plotlyOutput("PlotlyGender100")),
+                            #tabPanel("Gender", plotOutput("PlotGender100")),
                             tabPanel("Age"),
                             tabPanel("Edu")
                           )
