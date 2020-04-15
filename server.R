@@ -28,8 +28,6 @@ server <- function(input, output, session) {
   #country_list <- c("France", "Italy")
     
   #Generating Gender 100% barplot (by @ggautreau) ---- 
-  
-  
     
   genders <- c("Female","Male","Other/would rather not say")
   
@@ -54,6 +52,8 @@ server <- function(input, output, session) {
     coord_flip() +
     labs(x = "Country", y = "% Gender") +
     theme_classic()
+  
+  #Generating Age Pyramid (by @ggautreau) ---- 
   
   
   output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })

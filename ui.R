@@ -6,6 +6,7 @@ library(tools)
 library(ggplot2)
 library(plotly)
 library(dplyr)
+library(stringr)
 
 #### UI ----
 
@@ -23,8 +24,7 @@ ui <- fluidPage(
                         mainPanel(
                           tabsetPanel(
                             tabPanel("Gender Distribution", plotlyOutput("PlotlyGender100")),
-                            #tabPanel("Gender", plotOutput("PlotGender100")),
-                            tabPanel("Age"),
+                            tabPanel("Age  Distribution", plotlyOutput("PlotlyAge")),
                             tabPanel("Edu")
                           )
                         )
