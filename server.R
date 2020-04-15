@@ -55,9 +55,30 @@ server <- function(input, output, session) {
   
   #Generating Age Pyramid (by @ggautreau) ---- 
   
+  processed_data <- data[data$Country%in%country_list,]
+  processed_data$Dem_age_sliced <- cut(as.numeric(processed_data$Dem_age), breaks = seq(0, 100, 5), right = FALSE)
+  processed_data <- processed_data[!is.na(processed_data$Dem_age_sliced),]
+  
+  label_ages <- function(x){x <- str_replace(x,"\\)", "[")
+  str_replace(x,",", "-")}
+  
+  pAge <- ggplot(data = processed_data, aes(x = Dem_age_sliced, fill=Dem_gender)) +
+    geom_bar(data = subset(processed_data, Dem_gender == "Female"), aes(y = ..count.. * (-1), text = ..count..)) +
+    geom_bar(data = subset(processed_data, Dem_gender == "Male"), aes(y = ..count.. , text = ..count..)) +
+    scale_fill_manual(name="Gender", values = c("Female" = "#00c7b8ff", "Male" = "#31233bff")) +
+    scale_y_continuous(labels = abs) +
+    scale_x_discrete(labels = label_ages) +
+    geom_hline(yintercept=0, size=0.1) +
+    coord_flip() +
+    labs(x = "Age ranges", y = "# of surveyed") +
+    theme_classic()
+  
+  # Sending plots to ui ----
+  
   
   output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })
-  #output$PlotGender100<-renderPlot({pGender100})
+  output$PlotlyAge<-renderPlotly({ ggplotly(pAge, tooltip = "text") })
+  
   
   })
 }
