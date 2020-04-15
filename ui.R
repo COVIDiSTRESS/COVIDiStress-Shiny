@@ -12,7 +12,9 @@ library(stringr)
 
 ui <- fluidPage(
   navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
-             "COVIDiSURVEY",
+             windowTitle = "COVIDiSTRESS Global Survey",
+             title = div( img( src = "logo-COVIDiStressSurvey.png", width = 130,
+                               style = "margin:-10px 5px" ), "COVIDiSTRESS Global Survey"),
              tabPanel("Sample Description",
                       sidebarLayout(
                         sidebarPanel(
