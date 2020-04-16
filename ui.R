@@ -43,6 +43,7 @@ ui <- fluidPage(
                           )
                         )
                       )
-             )
+             ),
+             tabPanel("About")
   )
 )
