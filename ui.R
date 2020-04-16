@@ -11,9 +11,10 @@ library(stringr)
 #### UI ----
 
 ui <- fluidPage(
-  navbarPage(theme = shinytheme("flatly"), collapsible = TRUE,
+  navbarPage(theme = shinytheme("flatly"),
+             collapsible = TRUE,
              windowTitle = "COVIDiSTRESS Global Survey",
-             title = div( img( src = "logo-COVIDiStressSurvey.png", width = 130,
+             title = div( img( src = "Covidistress2.jpg", width = 50,
                                style = "margin:-10px 5px" ), "COVIDiSTRESS Global Survey"),
              tabPanel("Sample Description",
                       sidebarLayout(
@@ -27,7 +28,7 @@ ui <- fluidPage(
                           tabsetPanel(
                             tabPanel("Gender Distribution", plotlyOutput("PlotlyGender100")),
                             tabPanel("Age  Distribution", plotlyOutput("PlotlyAge")),
-                            tabPanel("Edu")
+                            tabPanel("Distribution of Education Level", plotlyOutput("PlotlyEdu"))
                           )
                         )
                       )

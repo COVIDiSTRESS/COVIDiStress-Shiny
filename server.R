@@ -85,7 +85,7 @@ server <- function(input, output, session) {
     group_by(Country,Dem_edu) %>%
     summarise(nb_surveyed=n()) %>%
     ungroup() %>%
-    group_by(Dem_edu) %>%
+    group_by(Country) %>%
     mutate(perc_surveyed_by_country = (nb_surveyed / sum(nb_surveyed))) %>%
     ungroup() %>%
     mutate(country_edu_text = paste0(
