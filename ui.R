@@ -7,6 +7,7 @@ library(ggplot2)
 library(plotly)
 library(dplyr)
 library(stringr)
+library(maps)
 
 #### UI ----
 
@@ -35,10 +36,13 @@ ui <- fluidPage(
              ),
              tabPanel("Results",
                       sidebarLayout(
-                        sidebarPanel(),
+                        sidebarPanel(
+                          selectInput('MapRegionChoice', h3("Select Region"),
+                                      choices = list("World" = 1, "Europe" = 2), selected = 1)
+                        ),
                         mainPanel(
                           tabsetPanel(
-                            tabPanel("Isolation"),
+                            tabPanel("Isolation", plotlyOutput("PlotlyIsolationMap")),
                             tabPanel("Stress"),
                             tabPanel("Corona Concern")
                           )
