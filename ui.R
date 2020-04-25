@@ -42,7 +42,7 @@ ui <- fluidPage(
                         ),
                         mainPanel(
                           tabsetPanel(
-                            tabPanel("Isolation", plotlyOutput("PlotlyIsolationMap")),
+                            tabPanel("Isolation Score", plotlyOutput("PlotlyIsolationMap")),
                             tabPanel("Stress"),
                             tabPanel("Corona Concern")
                           )

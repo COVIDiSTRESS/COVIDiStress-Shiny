@@ -201,7 +201,7 @@ server <- function(input, output, session) {
         
         p <- ggplot(as.data.frame(processed_world_map)) +
           geom_polygon(aes( x = long, y = lat, group = group, fill = mean_isolation_score, text = country_text), colour = "black", size = 0.2)+
-          scale_fill_distiller(palette="RdYlBu", name = "isolation score", limits = c(0, 3), breaks = c(0,1,2,3), labels= c("0 - Life carries on as usual","1 - Life carries on with minor changes","2 - Isolated","3 - Isolated in medical facility of similar location"),values=c(0,0.45,0.55,1))+#breaks=c(10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000), guide=guide_colorbar(barwidth = 0.8, barheight = 18), trans = "log", limits=c(10, NA), direction=-1
+          scale_fill_distiller(palette="RdYlBu", name = "Isolation score", limits = c(0, 3), breaks = c(0,1,2,3), labels= c("0 - Life carries on as usual","1 - Life carries on with minor changes","2 - Isolated","3 - Isolated in medical facility of similar location"),values=c(0,0.45,0.55,1))+#breaks=c(10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000), guide=guide_colorbar(barwidth = 0.8, barheight = 18), trans = "log", limits=c(10, NA), direction=-1
           scale_x_continuous(limits=x_continent)+
           scale_y_continuous(limits=y_continent)+
           theme_void()
