@@ -38,8 +38,8 @@ ui <- fluidPage(
                       sidebarLayout(
                         sidebarPanel(
                           selectInput('MapRegionChoice', h3("Select Region"),
-                                      choices = list("World" = 1, "Africa" = 2, "Asia" = 3,
-                                        "America" = 4, "Europe" = 5, "Oceania" = 6), 
+                                      choices = list("World" = 1, "Africa" = 2, "America" = 3,
+                                          "Asia" = 4, "Europe" = 5, "Oceania" = 6), 
                                       selected = 1),
                           selectInput('ConcernChoice', h3("Concern for who?"),
                                       choices = list("Themself" = 1, "My family" = 2, "My friends" = 3,
