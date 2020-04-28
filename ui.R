@@ -38,13 +38,16 @@ ui <- fluidPage(
                       sidebarLayout(
                         sidebarPanel(
                           selectInput('MapRegionChoice', h3("Select Region"),
-                                      choices = list("World" = 1, "Europe" = 2), selected = 1)
+                                      choices = list("World" = 1, "Africa" = 2, "Asia" = 3,
+                                        "America" = 4, "Europe" = 5, "Oceania" = 6), 
+                                      selected = 1)
                         ),
                         mainPanel(
                           tabsetPanel(
                             tabPanel("Isolation Score", plotlyOutput("PlotlyIsolationMap")),
-                            tabPanel("Stress"),
-                            tabPanel("Corona Concern")
+                            tabPanel("Stress Score", plotlyOutput("PlotlyStressMap")),
+                            tabPanel("Trust Score", plotlyOutput("PlotlyTrustMap")),
+                            tabPanel("Corona Concern Score", plotlyOutput("PlotlyCoronaConcernMap"))
                           )
                         )
                       )
