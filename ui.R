@@ -40,6 +40,10 @@ ui <- fluidPage(
                           selectInput('MapRegionChoice', h3("Select Region"),
                                       choices = list("World" = 1, "Africa" = 2, "Asia" = 3,
                                         "America" = 4, "Europe" = 5, "Oceania" = 6), 
+                                      selected = 1),
+                          selectInput('ConcernChoice', h3("Concern for who?"),
+                                      choices = list("Themself" = 1, "My family" = 2, "My friends" = 3,
+                                                     "My country" = 4, "Other countries" = 5), 
                                       selected = 1)
                         ),
                         mainPanel(

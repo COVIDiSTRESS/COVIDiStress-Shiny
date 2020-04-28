@@ -84,6 +84,7 @@ server <- function(input, output, session) {
   observeEvent({
     input$CountryChoice
     input$MapRegionChoice
+    input$ConcernChoice
   },{
     
     country_list <- input$CountryChoice
@@ -327,6 +328,9 @@ server <- function(input, output, session) {
     }
     
     
+    concern_switch <- 
+      switch(input$ConcernChoice, "1"="himself", "2"="family", "3"="friends", "4"="country", "5"="othercountries")
+    
     # Sending plots to ui ----
     
     output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })
@@ -338,7 +342,7 @@ server <- function(input, output, session) {
              output$PlotlyStressMap <- renderPlotly({ggplotly(stress_map(world="world"), tooltip="text")} )
              output$PlotlyIsolationMap<-renderPlotly({ggplotly(isolation_map(world="world"), tooltip="text")})
              output$PlotlyTrustMap <- renderPlotly({ggplotly(trust_map(world="world"), tooltip="text")} )
-             output$PlotlyCoronaConcernMap<-renderPlotly({ggplotly(concern_map(world="world"), tooltip="text")})
+             output$PlotlyCoronaConcernMap<-renderPlotly({ggplotly(concern_map(world="world", who=concern_switch), tooltip="text")})
            },
            "2" = { #2 Africa 
              output$PlotlyStressMap <- renderPlotly({ ggplotly(stress_map(), tooltip="text") %>% 
@@ -347,7 +351,7 @@ server <- function(input, output, session) {
                  layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
              output$PlotlyTrustMap <- renderPlotly({ggplotly(trust_map(), tooltip="text") %>% 
                  layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
-             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(), tooltip="text") %>% 
+             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(who=concern_switch), tooltip="text") %>% 
                  layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
            },
            "3" = { #3 America
@@ -357,7 +361,7 @@ server <- function(input, output, session) {
                  layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80)))  })
              output$PlotlyTrustMap <- renderPlotly({ggplotly(trust_map(), tooltip="text") %>% 
                  layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80))) })                 
-             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(), tooltip="text") %>% 
+             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(who=concern_switch), tooltip="text") %>% 
                  layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80))) })                     
            },
            "4" = { #4 Asia
@@ -367,7 +371,7 @@ server <- function(input, output, session) {
                  layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
              output$PlotlyTrustMap <- renderPlotly({ggplotly(trust_map(), tooltip="text") %>% 
                  layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
-             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(), tooltip="text") %>% 
+             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(who=concern_switch), tooltip="text") %>% 
                  layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
            },
            "5" = { #5 Europe
@@ -377,7 +381,7 @@ server <- function(input, output, session) {
                  layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
              output$PlotlyTrustMap <- renderPlotly({ggplotly(trust_map(), tooltip="text") %>% 
                  layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
-             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(), tooltip="text") %>% 
+             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(who=concern_switch), tooltip="text") %>% 
                  layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
            },
            "6" = { #Oceania
@@ -387,7 +391,7 @@ server <- function(input, output, session) {
                  layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })
              output$PlotlyTrustMap <- renderPlotly({ggplotly(trust_map(world="world2"), tooltip="text") %>% 
                  layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })
-             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(world="world2"), tooltip="text") %>% 
+             output$PlotlyCoronaConcernMap <- renderPlotly({ggplotly(concern_map(world="world2", who=concern_switch), tooltip="text") %>% 
                  layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })        
            }
     )
