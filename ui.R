@@ -8,6 +8,7 @@ library(plotly)
 library(dplyr)
 library(stringr)
 library(maps)
+source("get_world_maps.R")
 
 #### UI ----
 

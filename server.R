@@ -1,7 +1,13 @@
 server <- function(input, output, session) {
   # Loading Data ----
-  data <- read.csv("covid_06042020_choice_values.csv", header = T, stringsAsFactors = F)
-  data <- data[3:nrow(data),]
+  
+  args <- commandArgs(TRUE)
+  args <- ifelse(length(args)==0,"../COVIDiSTRESS_April_27_clean.csv",args)
+  data = read.csv(args, header=T, stringsAsFactors=F)
+  
+  data = data %>%
+    mutate(Country=recode(Country,"Cabo Verde"="Cape Verde","Congo, Democratic Republic of the"="Democratic Republic of the Congo","Congo, Republic of the"="Republic of Congo","Côte d’Ivoire"="Ivory Coast","East Timor (Timor-Leste)"="Timor-Leste","Korea, North"="North Korea","Korea, South"="South Korea","Micronesia, Federated States of"="Micronesia","Sudan, South"="South Sudan","The Bahamas"="Bahamas","United Kingdom"="UK","United States"="USA"))
+  
   
   # Creating Variables ----
   
