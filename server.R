@@ -2,7 +2,7 @@ server <- function(input, output, session) {
   # Loading Data ----
   
   args <- commandArgs(TRUE)
-  args <- ifelse(length(args)==0,"COVIDiSTRESS_April_27_clean.csv",args)
+  args <- ifelse(length(args)==0,"COVIDiSTRESS_May_04_clean.csv",args)
   data = read.csv(args, header=T, stringsAsFactors=F)
   
   data = data %>%
@@ -87,10 +87,10 @@ server <- function(input, output, session) {
     
     #Generating Education Distribution Plot (by @ggautreau) ---- 
     
-    education <- c("- PhD/Doctorate", "- College degree, bachelor, master", "- Some College, short continuing education or equivalent", "- Up to 12 years of school ", "- Up to 9 years of school", "- Up to 6 years of school", "- None")
+    education <- c("PhD/Doctorate", "College degree, bachelor, master", "Some College, short continuing education or equivalent", "Up to 12 years of school ", "Up to 9 years of school", "Up to 6 years of school", "None")
     
     processed_data = data %>%
-      filter(Country%in%country_list,Dem_edu %in% education) %>%
+      filter(Country%in%country_list, Dem_edu %in% education) %>%
       group_by(Country,Dem_edu) %>%
       summarise(nb_surveyed=n()) %>%
       ungroup() %>%
@@ -107,13 +107,14 @@ server <- function(input, output, session) {
     
     pEdu <- ggplot(data = processed_data) +
       geom_bar(aes(x = Country, y = perc_surveyed_by_country, fill = Dem_edu, text = country_edu_text), stat="identity", size=0.5, color="grey20") +
-      scale_fill_manual(name="Education", values=c("- PhD/Doctorate" = "#31233bff", "- College degree, bachelor, master" = "#50456cff","- Some College, short continuing education or equivalent" = "#6b6099ff","- Up to 12 years of school " = "#9392b7ff","- Up to 9 years of school" = "#b0b0d1ff","- Up to 6 years of school" = "#bec0d4ff", "- None" = "#f8f8ffff")) +
+      scale_fill_manual(name="Education", values=c("PhD/Doctorate" = "#31233bff", "College degree, bachelor, master" = "#50456cff","Some College, short continuing education or equivalent" = "#6b6099ff","Up to 12 years of school " = "#9392b7ff","Up to 9 years of school" = "#b0b0d1ff","Up to 6 years of school" = "#bec0d4ff", "None" = "#f8f8ffff"))+
       coord_flip() +
       scale_y_continuous(breaks=seq(0,1,0.1),labels = scales::percent_format(accuracy = 1),expand=c(0,0))+
       scale_x_discrete(expand=c(0,0))+
       labs(x = "Country", y = "% Education") +
       theme_classic() +
       theme(legend.position="top")
+    
     
     #Generating Isolation Map Plot (by @ggautreau) ---- 
     isolation_map <- function(world="world"){
@@ -152,6 +153,7 @@ server <- function(input, output, session) {
       
       save(world_map_1_isolation, world_map_2_isolation,file="world_maps_isolation.Rdata")
     }
+    
     
     #Function for Generating Stress Map Plot (by @ggautreau) ---- 
     stress_map <- function(world="world"){
@@ -229,6 +231,7 @@ server <- function(input, output, session) {
            file="world_maps_trust.Rdata")
     }
     
+    if(TRUE){
     #Function for Generating Concern Map Plot (by @ggautreau) ---- 
     concern_map <- function(world="world", who="himself"){
       #world = "world" means a atlantic-centred map
@@ -304,6 +307,8 @@ server <- function(input, output, session) {
     
 
     
+    }
+    
     # Sending plots to ui ----
     
     output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })
@@ -312,8 +317,8 @@ server <- function(input, output, session) {
     if(TRUE) {
     switch(input$MapRegionChoice,
            "1" = { #1 = World
-             output$PlotlyStressMap <- renderPlotly({world_map_1_stress} )
              output$PlotlyIsolationMap<-renderPlotly({world_map_1_isolation})
+             output$PlotlyStressMap <- renderPlotly({world_map_1_stress} )
              output$PlotlyTrustMap <- renderPlotly({world_map_1_trust} )
              output$PlotlyCoronaConcernMap<-renderPlotly({world_map_1_concern})
            },

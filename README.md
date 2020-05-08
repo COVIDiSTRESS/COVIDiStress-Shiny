@@ -8,4 +8,4 @@ library(shiny)
 runApp("COVIDiStress-Shiny")
 ````
 
-To make the code run faster check line 15 of `server.R`
+To make the code run faster check line 22 of `server.R`
