@@ -1,6 +1,10 @@
 server <- function(input, output, session) {
+  
+  withProgress(message = 'Loading data and loading maps', value = 0,{
+  incProgress(1/6, detail = "Loading survey data (67 Mb)")
   # Loading Data ----
   
+    
   args <- commandArgs(TRUE)
   args <- ifelse(length(args)==0,"COVIDiSTRESS_May_04_clean.csv",args)
   data = read.csv(args, header=T, stringsAsFactors=F)
@@ -27,7 +31,10 @@ server <- function(input, output, session) {
 
   
   # Creating map functions and loading maps ----
+  incProgress(1/6, detail = "Loading Isolation Map (66Mb)")
   #Generating Isolation Map Plot (by @ggautreau)
+  dat <- data.frame(x = numeric(0), y = numeric(0))
+  
   isolation_map <- function(world="world"){
     #world = "world" means a atlantic-centred map
     #world = "world2" means a pacific-centred map
@@ -65,6 +72,7 @@ server <- function(input, output, session) {
     save(world_map_1_isolation, world_map_2_isolation,file="world_maps_isolation.Rdata")
   }
   
+  incProgress(1/6, detail = "Loading Stress Map (118Mb)")
   #Function for Generating Stress Map Plot (by @ggautreau)
   stress_map <- function(world="world"){
     #world = "world" means a atlantic-centred map
@@ -102,6 +110,7 @@ server <- function(input, output, session) {
     save(world_map_1_stress, world_map_2_stress,file="world_maps_stress.Rdata")
   }
   
+  incProgress(1/6, detail = "Loading Trust Map (169Mb)")
   #Function for Generating Trust Map Plot (by @ggautreau)
   trust_map <- function(world="world"){
     #world = "world" means a atlantic-centred map
@@ -191,16 +200,25 @@ server <- function(input, output, session) {
       theme_void()
   }
   
+  incProgress(1/6, detail = "Creating Concern Map")
+  #we create one default map
+  world_map_1_concern_ORIGIN <- ggplotly(concern_map(who="himself"))
   
-  #Dynamic Part for the "Sample Description" tab
+  })
+  
+  #Dynamic Part for the "Sample Description" tab ----
   observeEvent({
     input$CountryChoice
   },{
     
+    withProgress(message = 'Computing Results and Creating plots', value = 0,{
     country_list <- input$CountryChoice
     #country_list <- c("France", "Italy")
     
+    incProgress(1/5, detail = "Creating Gender Plot")
     #Generating Gender 100% barplot (by @ggautreau) ---- 
+    
+    
     
     genders <- c("Female","Male","Other/would rather not say")
     
@@ -229,8 +247,9 @@ server <- function(input, output, session) {
       theme_classic() +
       theme(legend.position="top")
     
-    #Generating Age Pyramid (by @ggautreau) ---- 
     
+    #Generating Age Pyramid (by @ggautreau) ---- 
+    incProgress(1/5, detail = "Creating Age Plot")
     processed_data <- data[data$Country%in%country_list,]
     processed_data$Dem_age_sliced <- cut(as.numeric(processed_data$Dem_age), breaks = seq(0, 100, 5), right = FALSE)
     processed_data <- processed_data[!is.na(processed_data$Dem_age_sliced),]
@@ -249,8 +268,9 @@ server <- function(input, output, session) {
       labs(x = "Age ranges", y = "# of surveyed") +
       theme_classic()
     
-    #Generating Education Distribution Plot (by @ggautreau) ---- 
     
+    #Generating Education Distribution Plot (by @ggautreau) ---- 
+    incProgress(1/5, detail = "Creating Education Plot")
     education <- c("PhD/Doctorate", "College degree, bachelor, master", "Some College, short continuing education or equivalent", "Up to 12 years of school ", "Up to 9 years of school", "Up to 6 years of school", "None")
     
     processed_data = data %>%
@@ -282,105 +302,13 @@ server <- function(input, output, session) {
     
     # Sending plots to ui ----
     
+    incProgress(1/5, detail = "Creating outputs")
     output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })
     output$PlotlyAge<-renderPlotly({ ggplotly(pAge, tooltip = "text") })
     output$PlotlyEdu<-renderPlotly({ ggplotly(pEdu, tooltip = "text") })
+    })
   })
   
-  # Dynamic Part for the "Sample Description" tab ----
-  observeEvent({
-    input$CountryChoice
-  },{
-    
-    country_list <- input$CountryChoice
-    #country_list <- c("France", "Italy")
-    
-    #Generating Gender 100% barplot (by @ggautreau) ---- 
-    
-    genders <- c("Female","Male","Other/would rather not say")
-    
-    processed_data = data %>%
-      filter(Country%in%country_list,Dem_gender != "") %>%
-      group_by(Country,Dem_gender) %>%
-      summarise(nb_surveyed=n()) %>%
-      ungroup() %>%
-      group_by(Country) %>%
-      mutate(perc_surveyed_by_country = (nb_surveyed / sum(nb_surveyed))) %>%
-      ungroup() %>%
-      mutate(country_gender_text = paste0(
-        "Country: ", Country, "\n",
-        "Gender: ", Dem_gender, "\n",
-        "# of surveyed: ", nb_surveyed, "\n",
-        "% of surveyed: ", round(perc_surveyed_by_country*100, 2), "%\n"))
-    processed_data$Country <- factor(processed_data$Country, levels = rev(country_list))
-    processed_data$Dem_gender <- factor(processed_data$Dem_gender, levels = rev(genders))
-    pGender100 <- ggplot(data = processed_data) +
-      geom_bar(aes(x = Country, y = perc_surveyed_by_country, fill = Dem_gender, text = country_gender_text), stat="identity", size=0.5, color="grey20") +
-      scale_fill_manual(name="Gender", values=c("Female" = "#00c7b8ff", "Male" = "#31233bff","Other/would rather not say" = "#fbedcdff")) +
-      coord_flip() +
-      scale_y_continuous(breaks=seq(0,1,0.1),labels = scales::percent_format(accuracy = 1),expand=c(0,0))+
-      scale_x_discrete(expand=c(0,0))+
-      labs(x = "Country", y = "% Gender") +
-      theme_classic() +
-      theme(legend.position="top")
-    
-    #Generating Age Pyramid (by @ggautreau) ---- 
-    
-    processed_data <- data[data$Country%in%country_list,]
-    processed_data$Dem_age_sliced <- cut(as.numeric(processed_data$Dem_age), breaks = seq(0, 100, 5), right = FALSE)
-    processed_data <- processed_data[!is.na(processed_data$Dem_age_sliced),]
-    
-    label_ages <- function(x){x <- str_replace(x,"\\)", "[")
-    str_replace(x,",", "-")}
-    
-    pAge <- ggplot(data = processed_data, aes(x = Dem_age_sliced, fill=Dem_gender)) +
-      geom_bar(data = subset(processed_data, Dem_gender == "Female"), aes(y = ..count.. * (-1), text = ..count..)) +
-      geom_bar(data = subset(processed_data, Dem_gender == "Male"), aes(y = ..count.. , text = ..count..)) +
-      scale_fill_manual(name="Gender", values = c("Female" = "#00c7b8ff", "Male" = "#31233bff")) +
-      scale_y_continuous(labels = abs) +
-      scale_x_discrete(labels = label_ages) +
-      geom_hline(yintercept=0, size=0.1) +
-      coord_flip() +
-      labs(x = "Age ranges", y = "# of surveyed") +
-      theme_classic()
-    
-    #Generating Education Distribution Plot (by @ggautreau) ---- 
-    
-    education <- c("PhD/Doctorate", "College degree, bachelor, master", "Some College, short continuing education or equivalent", "Up to 12 years of school ", "Up to 9 years of school", "Up to 6 years of school", "None")
-    
-    processed_data = data %>%
-      filter(Country%in%country_list, Dem_edu %in% education) %>%
-      group_by(Country,Dem_edu) %>%
-      summarise(nb_surveyed=n()) %>%
-      ungroup() %>%
-      group_by(Country) %>%
-      mutate(perc_surveyed_by_country = (nb_surveyed / sum(nb_surveyed))) %>%
-      ungroup() %>%
-      mutate(country_edu_text = paste0(
-        "Country: ", Country, "\n",
-        "Education: ", Dem_edu, "\n",
-        "# of surveyed: ", nb_surveyed, "\n",
-        "% of surveyed: ", round(perc_surveyed_by_country*100, 2), "%\n"))
-    processed_data$Country <- factor(processed_data$Country, levels = rev(country_list))
-    processed_data$Dem_edu <- factor(processed_data$Dem_edu, levels = rev(education))
-    
-    pEdu <- ggplot(data = processed_data) +
-      geom_bar(aes(x = Country, y = perc_surveyed_by_country, fill = Dem_edu, text = country_edu_text), stat="identity", size=0.5, color="grey20") +
-      scale_fill_manual(name="Education", values=c("PhD/Doctorate" = "#31233bff", "College degree, bachelor, master" = "#50456cff","Some College, short continuing education or equivalent" = "#6b6099ff","Up to 12 years of school " = "#9392b7ff","Up to 9 years of school" = "#b0b0d1ff","Up to 6 years of school" = "#bec0d4ff", "None" = "#f8f8ffff"))+
-      coord_flip() +
-      scale_y_continuous(breaks=seq(0,1,0.1),labels = scales::percent_format(accuracy = 1),expand=c(0,0))+
-      scale_x_discrete(expand=c(0,0))+
-      labs(x = "Country", y = "% Education") +
-      theme_classic() +
-      theme(legend.position="top")
-    
-    
-    # Sending plots to ui ----
-    
-    output$PlotlyGender100<-renderPlotly({ ggplotly(pGender100, tooltip = "text") })
-    output$PlotlyAge<-renderPlotly({ ggplotly(pAge, tooltip = "text") })
-    output$PlotlyEdu<-renderPlotly({ ggplotly(pEdu, tooltip = "text") })
-  })
   
   # Dynamic Part for the "Results" tab ----
   observeEvent({
@@ -389,26 +317,35 @@ server <- function(input, output, session) {
   },{
     
     #Creating Concern maps
+    withProgress(message = 'Plotting maps', value = 0,{
     
-    if(input$MapRegionChoice<6){
-      world_map_1_concern <- switch(input$ConcernChoice,
-                                    "1"= ggplotly(concern_map(who="himself"), tooltip="text"),
-                                    "2"= ggplotly(concern_map(who="family"), tooltip="text"),
-                                    "3"= ggplotly(concern_map(who="friend"), tooltip="text"),
-                                    "4"= ggplotly(concern_map(who="country"), tooltip="text"),
-                                    "5"= ggplotly(concern_map(who="othercountries"), tooltip="text")
-      )
-    }else{
-      world_map_2_concern <- switch(input$ConcernChoice,
-                                    "1"= ggplotly(concern_map(who="himself" ,world="world2"), tooltip="text"),
-                                    "2"= ggplotly(concern_map(who="family",world="world2"), tooltip="text"),
-                                    "3"= ggplotly(concern_map(who="friend",world="world2"), tooltip="text"),
-                                    "4"= ggplotly(concern_map(who="country",world="world2"), tooltip="text"),
-                                    "5"= ggplotly(concern_map(who="othercountries",world="world2"), tooltip="text")
-      )
+    if(input$MapRegionChoice==6 || input$ConcernChoice>1) #testing if choice is default
+    { #Not default : creating the map
+      incProgress(1/3, detail = "Creating Concern Map")
+      
+      if(input$MapRegionChoice<6){
+        world_map_1_concern <- switch(input$ConcernChoice,
+                                      "1"= ggplotly(concern_map(who="himself"), tooltip="text"),
+                                      "2"= ggplotly(concern_map(who="family"), tooltip="text"),
+                                      "3"= ggplotly(concern_map(who="friend"), tooltip="text"),
+                                      "4"= ggplotly(concern_map(who="country"), tooltip="text"),
+                                      "5"= ggplotly(concern_map(who="othercountries"), tooltip="text")
+        )
+      }else{
+        world_map_2_concern <- switch(input$ConcernChoice,
+                                      "1"= ggplotly(concern_map(who="himself" ,world="world2"), tooltip="text"),
+                                      "2"= ggplotly(concern_map(who="family",world="world2"), tooltip="text"),
+                                      "3"= ggplotly(concern_map(who="friend",world="world2"), tooltip="text"),
+                                      "4"= ggplotly(concern_map(who="country",world="world2"), tooltip="text"),
+                                      "5"= ggplotly(concern_map(who="othercountries",world="world2"), tooltip="text")
+        )
+      }
+    }else{ #default: using default map
+      world_map_1_concern <- world_map_1_concern_ORIGIN
     }
     
     # Sending plots to ui
+    incProgress(1/3, detail = "Sending plots to UI")
     if(TRUE) {
       switch(input$MapRegionChoice,
              "1" = { #1 = World
@@ -469,5 +406,6 @@ server <- function(input, output, session) {
              }
       )
     }
+    })
   })
 }
