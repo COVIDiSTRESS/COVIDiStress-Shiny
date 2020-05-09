@@ -22,6 +22,7 @@ server <- function(input, output, session) {
       Unique_CountryName_full <- read.csv("Unique_CountryName_full.csv", header = T, stringsAsFactors = F)$x
     }else{
       Unique_CountryName_full <- unique(toTitleCase(tolower(data$Country)))
+      Unique_CountryName_full[Unique_CountryName_full=="Usa"] <- "USA"
       Unique_CountryName_full <- sort(Unique_CountryName_full[Unique_CountryName_full!=""])
       Unique_CountryName_full <- c(Unique_CountryName_full, "World")
       #execute the following line to speed up the process (not generate country names at every run)
