@@ -20,6 +20,7 @@ server <- function(input, output, session) {
     Unique_CountryName_full <- read.csv("Unique_CountryName_full.csv", header = T, stringsAsFactors = F)$x
   }else{
     Unique_CountryName_full <- unique(toTitleCase(tolower(data$Country)))
+    Unique_CountryName_full[Unique_CountryName_full=="Usa"] <- "USA"
     Unique_CountryName_full <- sort(Unique_CountryName_full[Unique_CountryName_full!=""])
     Unique_CountryName_full <- c(Unique_CountryName_full, "World")
     #execute the following line to speed up the process (not generate country names at every run)
@@ -185,7 +186,7 @@ server <- function(input, output, session) {
         "Std dev. concern score for family: ", round(sd_concern_score_family,2), ifelse(who=="family","</b>",""), "\n",
         ifelse(who=="country","<b>",""),"Mean concern score for his country: ", round(mean_concern_score_country,2), "\n",
         "Std dev. concern score for his country: ", round(sd_concern_score_country,2), ifelse(who=="country","</b>",""), "\n",
-        ifelse(who=="othercountries","<b>",""),"Mean concern score for other countries: ", round(mean_concern_score_othercountries,2), "\n",
+        ifelse(who=="orthercountries","<b>",""),"Mean concern score for other countries: ", round(mean_concern_score_othercountries,2), "\n",
         "Std dev. concern score for other countries: ", round(sd_concern_score_othercountries,2), ifelse(who=="othercountries","</b>",""), "\n",
         "# of answers: ", nb_answers))
     
@@ -196,7 +197,7 @@ server <- function(input, output, session) {
              family=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_family, text = country_text), colour = "black", size = 0.2),
              country=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_country, text = country_text), colour = "black", size = 0.2),
              othercountries=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_othercountries, text = country_text), colour = "black", size = 0.2))+
-      scale_fill_distiller(palette="RdYlBu", name = "Concerned about consequences of the coronavirus ?", limits = c(1, 6), breaks = c(1,2,3,4,5,6), labels= c("1 - Strongly disagree","2 - Disagree","3 - Slightly disagree","4 - Slightly agree","5 - Agree","6 - Strongly agree"))+
+      scale_fill_distiller(palette="RdYlBu", name = "Concerned about consequences of the coronavirus ?", limits = c(0, 5), breaks = c(0,1,2,3,4,5), labels= c("0 - Strongly disagree","1 - Disagree","2 - Slightly disagree","3 - Slightly agree","4 - Agree","5 - Strongly agree"))+#,values=c(0,0.45,0.55,1)
       theme_void()
   }
   
