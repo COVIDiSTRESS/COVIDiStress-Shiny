@@ -8,6 +8,8 @@ library(plotly)
 library(dplyr)
 library(stringr)
 library(maps)
+library(countrycode)
+library(wpp2019)
 source("get_world_maps.R")
 
 #### UI ----

@@ -150,56 +150,398 @@ server <- function(input, output, session) {
   }
   
   #Function for Generating Concern Map Plot (by @ggautreau) 
-  concern_map <- function(world="world", who="himself"){
-    #world = "world" means a atlantic-centred map
-    #world = "world2" means a pacific-centred map
-    #who="himself" 
-    #who="family" 
-    #who="friends" 
-    #who="country"
-    #who="othercountries"
-    
+  concern_map <- function() {
     processed_data = data %>%
-      group_by(Country) %>%                  
-      summarise(mean_concern_score_himself = mean(Corona_concerns_1, na.rm=T),
-                sd_concern_score_himself = sd(Corona_concerns_1,na.rm=T),
-                mean_concern_score_friend = mean(Corona_concerns_2, na.rm=T),
-                sd_concern_score_friend = sd(Corona_concerns_2, na.rm=T),
-                mean_concern_score_family = mean(Corona_concerns_3, na.rm=T),
-                sd_concern_score_family = sd(Corona_concerns_3, na.rm=T),
-                mean_concern_score_country = mean(Corona_concerns_4, na.rm=T),
-                sd_concern_score_country = sd(Corona_concerns_4, na.rm=T),
-                mean_concern_score_othercountries = mean(Corona_concerns_5, na.rm=T),
-                sd_concern_score_othercountries = sd(Corona_concerns_5, na.rm=T),
-                nb_answers = n())
+      group_by(Country) %>%
+      summarise(
+        mean_concern_score_themself = mean(Corona_concerns_1, na.rm = T),
+        sd_concern_score_themself = sd(Corona_concerns_1, na.rm =
+                                         T),
+        mean_concern_score_friend = mean(Corona_concerns_2, na.rm =
+                                           T),
+        sd_concern_score_friend = sd(Corona_concerns_2, na.rm =
+                                       T),
+        mean_concern_score_family = mean(Corona_concerns_3, na.rm =
+                                           T),
+        sd_concern_score_family = sd(Corona_concerns_3, na.rm =
+                                       T),
+        mean_concern_score_country = mean(Corona_concerns_4, na.rm =
+                                            T),
+        sd_concern_score_country = sd(Corona_concerns_4, na.rm =
+                                        T),
+        mean_concern_score_othercountries = mean(Corona_concerns_5, na.rm =
+                                                   T),
+        sd_concern_score_othercountries = sd(Corona_concerns_5, na.rm =
+                                               T),
+        nb_answers = n()
+      ) %>%
+      mutate(
+        Country_iso3c = countrycode(
+          sourcevar = Country,
+          origin = "country.name.en",
+          destination = "iso3c",
+          custom_match = c(
+            "Sudan, South" = "SSD",
+            "other" = NA,
+            "Kosovo" = NA
+          )
+        ),
+        Country_code = countrycode(
+          sourcevar = Country_iso3c,
+          origin = "iso3c",
+          destination = "un",
+          custom_match = c("SSD" = 728, "TWN" = 158)
+        ),
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"]
+      )
     
-    processed_world_map = get_world_map(world)
-    processed_world_map = left_join(processed_world_map,processed_data, by=c("country"="Country")) %>%
-      mutate(country_text = paste0(
-        "Country: ", country, "\n",
-        "Region: ", region, "\n",
-        ifelse(who=="himself","<b>",""), "Mean concern score for herself/himself: ", round(mean_concern_score_himself,2), "\n",
-        "Std dev. concern score for herself/himself: ", round(sd_concern_score_himself,2), ifelse(who=="himself","</b>","") ,"\n",
-        ifelse(who=="friend","<b>",""),"Mean concern score for close friends: ", round(mean_concern_score_friend,2), "\n",
-        "Std dev. concern score for close friends: ", round(sd_concern_score_friend,2), ifelse(who=="friend","</b>",""), "\n",
-        ifelse(who=="family","<b>",""),"Mean concern score for family: ", round(mean_concern_score_family,2), "\n",
-        "Std dev. concern score for family: ", round(sd_concern_score_family,2), ifelse(who=="family","</b>",""), "\n",
-        ifelse(who=="country","<b>",""),"Mean concern score for his country: ", round(mean_concern_score_country,2), "\n",
-        "Std dev. concern score for his country: ", round(sd_concern_score_country,2), ifelse(who=="country","</b>",""), "\n",
-        ifelse(who=="orthercountries","<b>",""),"Mean concern score for other countries: ", round(mean_concern_score_othercountries,2), "\n",
-        "Std dev. concern score for other countries: ", round(sd_concern_score_othercountries,2), ifelse(who=="othercountries","</b>",""), "\n",
-        "# of answers: ", nb_answers))
     
-    p <- ggplot(as.data.frame(processed_world_map))+
-      switch(who,
-             himself=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_himself, text = country_text), colour = "black", size = 0.2),
-             friend=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_friend, text = country_text), colour = "black", size = 0.2),
-             family=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_family, text = country_text), colour = "black", size = 0.2),
-             country=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_country, text = country_text), colour = "black", size = 0.2),
-             othercountries=geom_polygon(aes( x = long, y = lat, group = group, fill = mean_concern_score_othercountries, text = country_text), colour = "black", size = 0.2))+
-      scale_fill_distiller(palette="RdYlBu", name = "Concerned about consequences of the coronavirus ?", limits = c(0, 5), breaks = c(0,1,2,3,4,5), labels= c("0 - Strongly disagree","1 - Disagree","2 - Slightly disagree","3 - Slightly agree","4 - Agree","5 - Strongly agree"))+#,values=c(0,0.45,0.55,1)
-      theme_void()
+    fig <- plot_geo(processed_data) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_concern_score_themself,
+        color = ~ mean_concern_score_themself,
+        hovertemplate = ~ paste0(
+          "<b>Mean concern score for themself: ",
+          round(mean_concern_score_themself, 2),
+          "\n",
+          "Std dev. concern score for themself: ",
+          round(sd_concern_score_themself, 2),
+          "</b>\n",
+          "Mean concern score for close friends: ",
+          round(mean_concern_score_friend, 2),
+          "\n",
+          "Std dev. concern score for close friends: ",
+          round(sd_concern_score_friend, 2),
+          "\n",
+          "Mean concern score for family: ",
+          round(mean_concern_score_family, 2),
+          "\n",
+          "Std dev. concern score for family: ",
+          round(sd_concern_score_family, 2),
+          "\n",
+          "Mean concern score for his country: ",
+          round(mean_concern_score_country, 2),
+          "\n",
+          "Std dev. concern score for his country: ",
+          round(sd_concern_score_country, 2),
+          "\n",
+          "Mean concern score for other countries: ",
+          round(mean_concern_score_othercountries, 2),
+          "\n",
+          "Std dev. concern score for other countries: ",
+          round(sd_concern_score_othercountries, 2),
+          "\n",
+          "population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = 'RdBu',
+        zmin = 1,
+        zmax = 6,
+        colorbar = list(
+          title = 'Concern for themself',
+          tickvals = 1:6,
+          ticktext = c(
+            "1 - Strongly disagree",
+            "2 - Disagree",
+            "3 - Slightly disagree",
+            "4 - Slightly agree",
+            "5 - Agree",
+            "6 - Strongly agree"
+          )
+        )
+      ) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_concern_score_friend,
+        color = ~ mean_concern_score_friend,
+        hovertemplate = ~ paste0(
+          "Mean concern score for themself: ",
+          round(mean_concern_score_themself, 2),
+          "\n",
+          "Std dev. concern score for themself: ",
+          round(sd_concern_score_themself, 2),
+          "\n",
+          "<b>Mean concern score for close friends: ",
+          round(mean_concern_score_friend, 2),
+          "\n",
+          "Std dev. concern score for close friends: ",
+          round(sd_concern_score_friend, 2),
+          "</b>\n",
+          "Mean concern score for family: ",
+          round(mean_concern_score_family, 2),
+          "\n",
+          "Std dev. concern score for family: ",
+          round(sd_concern_score_family, 2),
+          "\n",
+          "Mean concern score for his country: ",
+          round(mean_concern_score_country, 2),
+          "\n",
+          "Std dev. concern score for his country: ",
+          round(sd_concern_score_country, 2),
+          "\n",
+          "Mean concern score for other countries: ",
+          round(mean_concern_score_othercountries, 2),
+          "\n",
+          "Std dev. concern score for other countries: ",
+          round(sd_concern_score_othercountries, 2),
+          "\n",
+          "population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = 'RdBu',
+        zmin = 1,
+        zmax = 6,
+        visible = FALSE,
+        colorbar = list(
+          title = 'Concern for their friends',
+          tickvals = 1:6,
+          ticktext = c(
+            "1 - Strongly disagree",
+            "2 - Disagree",
+            "3 - Slightly disagree",
+            "4 - Slightly agree",
+            "5 - Agree",
+            "6 - Strongly agree"
+          )
+        )
+      ) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_concern_score_family,
+        color = ~ mean_concern_score_family,
+        hovertemplate = ~ paste0(
+          "Mean concern score for themself: ",
+          round(mean_concern_score_themself, 2),
+          "\n",
+          "Std dev. concern score for themself: ",
+          round(sd_concern_score_themself, 2),
+          "\n",
+          "Mean concern score for close friends: ",
+          round(mean_concern_score_friend, 2),
+          "\n",
+          "Std dev. concern score for close friends: ",
+          round(sd_concern_score_friend, 2),
+          "\n",
+          "<b>Mean concern score for family: ",
+          round(mean_concern_score_family, 2),
+          "\n",
+          "Std dev. concern score for family: ",
+          round(sd_concern_score_family, 2),
+          "</b>\n",
+          "Mean concern score for his country: ",
+          round(mean_concern_score_country, 2),
+          "\n",
+          "Std dev. concern score for his country: ",
+          round(sd_concern_score_country, 2),
+          "\n",
+          "Mean concern score for other countries: ",
+          round(mean_concern_score_othercountries, 2),
+          "\n",
+          "Std dev. concern score for other countries: ",
+          round(sd_concern_score_othercountries, 2),
+          "\n",
+          "population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = 'RdBu',
+        zmin = 1,
+        zmax = 6,
+        visible = FALSE,
+        colorbar = list(
+          title = 'Concern for their family',
+          tickvals = 1:6,
+          ticktext = c(
+            "1 - Strongly disagree",
+            "2 - Disagree",
+            "3 - Slightly disagree",
+            "4 - Slightly agree",
+            "5 - Agree",
+            "6 - Strongly agree"
+          )
+        )
+      ) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_concern_score_country,
+        color = ~ mean_concern_score_country,
+        hovertemplate = ~ paste0(
+          "Mean concern score for themself: ",
+          round(mean_concern_score_themself, 2),
+          "\n",
+          "Std dev. concern score for themself: ",
+          round(sd_concern_score_themself, 2),
+          "\n",
+          "Mean concern score for close friends: ",
+          round(mean_concern_score_friend, 2),
+          "\n",
+          "Std dev. concern score for close friends: ",
+          round(sd_concern_score_friend, 2),
+          "\n",
+          "Mean concern score for family: ",
+          round(mean_concern_score_family, 2),
+          "\n",
+          "Std dev. concern score for family: ",
+          round(sd_concern_score_family, 2),
+          "\n",
+          "<b>Mean concern score for his country: ",
+          round(mean_concern_score_country, 2),
+          "\n",
+          "Std dev. concern score for his country: ",
+          round(sd_concern_score_country, 2),
+          "</b>\n",
+          "Mean concern score for other countries: ",
+          round(mean_concern_score_othercountries, 2),
+          "\n",
+          "Std dev. concern score for other countries: ",
+          round(sd_concern_score_othercountries, 2),
+          "\n",
+          "population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = 'RdBu',
+        zmin = 1,
+        zmax = 6,
+        visible = FALSE,
+        colorbar = list(
+          title = 'Concern for their country',
+          tickvals = 1:6,
+          ticktext = c(
+            "1 - Strongly disagree",
+            "2 - Disagree",
+            "3 - Slightly disagree",
+            "4 - Slightly agree",
+            "5 - Agree",
+            "6 - Strongly agree"
+          )
+        )
+      ) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_concern_score_othercountries,
+        color = ~ mean_concern_score_othercountries,
+        hovertemplate = ~ paste0(
+          "Mean concern score for themself: ",
+          round(mean_concern_score_themself, 2),
+          "\n",
+          "Std dev. concern score for themself: ",
+          round(sd_concern_score_themself, 2),
+          "\n",
+          "Mean concern score for close friends: ",
+          round(mean_concern_score_friend, 2),
+          "\n",
+          "Std dev. concern score for close friends: ",
+          round(sd_concern_score_friend, 2),
+          "\n",
+          "Mean concern score for family: ",
+          round(mean_concern_score_family, 2),
+          "\n",
+          "Std dev. concern score for family: ",
+          round(sd_concern_score_family, 2),
+          "\n",
+          "Mean concern score for his country: ",
+          round(mean_concern_score_country, 2),
+          "\n",
+          "Std dev. concern score for his country: ",
+          round(sd_concern_score_country, 2),
+          "\n",
+          "<b>Mean concern score for other countries: ",
+          round(mean_concern_score_othercountries, 2),
+          "\n",
+          "Std dev. concern score for other countries: ",
+          round(sd_concern_score_othercountries, 2),
+          "</b>\n",
+          "population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = 'RdBu',
+        zmin = 1,
+        zmax = 6,
+        visible = FALSE,
+        colorbar = list(
+          title = 'Concern for other countries',
+          tickvals = 1:6,
+          ticktext = c(
+            "1 - Strongly disagree",
+            "2 - Disagree",
+            "3 - Slightly disagree",
+            "4 - Slightly agree",
+            "5 - Agree",
+            "6 - Strongly agree"
+          )
+        )
+      ) %>%
+      layout(
+        title = "Concern map",
+        geo = list(showland = T,
+                   landcolor = toRGB("grey50")),
+        updatemenus = list(list(
+          buttons = list(
+            list(
+              method = 'restyle',
+              args = list("visible", list(TRUE, FALSE, FALSE, FALSE, FALSE)),
+              label = "Themself"
+            ),
+            list(
+              method = 'restyle',
+              args = list("visible", list(FALSE, TRUE, FALSE, FALSE, FALSE)),
+              label = "Friends"
+            ),
+            list(
+              method = 'restyle',
+              args = list("visible", list(FALSE, FALSE, TRUE, FALSE, FALSE)),
+              label = "Family"
+            ),
+            list(
+              method = 'restyle',
+              args = list("visible", list(FALSE, FALSE, FALSE, TRUE, FALSE)),
+              label = "Country"
+            ),
+            list(
+              method = 'restyle',
+              args = list("visible", list(FALSE, FALSE, FALSE, FALSE, TRUE)),
+              label = "Other countries"
+            )
+          )
+        ))
+      )
+    
+    return(fig)
+    
   }
+  
+  fig_concern = concern_map()
+  
   
   incProgress(1/6, detail = "Creating Concern Map")
   #we create one default map
