@@ -58,6 +58,6 @@ ui <- fluidPage(
                         )
                       )
              ),
-             tabPanel("About", "Hello")
+             tabPanel("About", "The COVIDiSTRESS global survey is an international collaborative undertaking for data gathering on people’s experiences, behavior and attitudes during the COVID-19 pandemic. In particular, the survey focuses on psychological stress, compliance with behavioral guidelines to slow the spread of Coronavirus, and trust in governmental institutions and their preventive measures, but multiple further items and scales are included for descriptive statistics, further analysis and comparative mapping between participating countries. Find more information at [https://covidistress.github.io/].")
   )
 )
