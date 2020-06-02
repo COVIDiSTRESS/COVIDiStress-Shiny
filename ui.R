@@ -10,6 +10,9 @@ library(stringr)
 library(maps)
 library(countrycode)
 library(wpp2019)
+data(pop)
+data(e0F)
+data(e0M)
 source("get_world_maps.R")
 
 #### UI ----
@@ -41,12 +44,8 @@ ui <- fluidPage(
                       sidebarLayout(
                         sidebarPanel(
                           selectInput('MapRegionChoice', h3("Select Region"),
-                                      choices = list("World" = 1, "Africa" = 2, "America" = 3,
-                                          "Asia" = 4, "Europe" = 5, "Oceania" = 6), 
-                                      selected = 1),
-                          selectInput('ConcernChoice', h3("Concern for who?"),
-                                      choices = list("Themself" = 1, "My family" = 2, "My friends" = 3,
-                                                     "My country" = 4, "Other countries" = 5), 
+                                      choices = list("World" = 1, "Africa" = 2, "Asia" = 3, "Europe" = 4, 
+                                                     "North America" = 5, "South America" = 6, "Oceania" = 7), 
                                       selected = 1)
                         ),
                         mainPanel(
@@ -59,6 +58,6 @@ ui <- fluidPage(
                         )
                       )
              ),
-             tabPanel("About")
+             tabPanel("About", "Hello")
   )
 )

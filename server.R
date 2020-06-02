@@ -1,13 +1,15 @@
 server <- function(input, output, session) {
   
   withProgress(message = 'Loading data and loading maps', value = 0,{
-  incProgress(1/6, detail = "Loading survey data (67 Mb)")
+  incProgress(1/6, detail = "Loading survey data (70 Mb)")
   # Loading Data ----
   
     
   args <- commandArgs(TRUE)
-  args <- ifelse(length(args)==0,"COVIDiSTRESS_May_04_clean.csv",args)
+  args <- ifelse(length(args)==0,"COVIDiSTRESS_May_30_clean.csv",args)
   data = read.csv(args, header=T, stringsAsFactors=F)
+  
+  #data = read.delim("COVIDiSTRESS_May_30_clean.dat", header=T, stringsAsFactors=F)
   
   data = data %>%
     mutate(Country=recode(Country,"Cabo Verde"="Cape Verde","Congo, Democratic Republic of the"="Democratic Republic of the Congo","Congo, Republic of the"="Republic of Congo","Côte d’Ivoire"="Ivory Coast","East Timor (Timor-Leste)"="Timor-Leste","Korea, North"="North Korea","Korea, South"="South Korea","Micronesia, Federated States of"="Micronesia","Sudan, South"="South Sudan","The Bahamas"="Bahamas","United Kingdom"="UK","United States"="USA"))
@@ -32,122 +34,218 @@ server <- function(input, output, session) {
 
   
   # Creating map functions and loading maps ----
-  incProgress(1/6, detail = "Loading Isolation Map (66Mb)")
+  incProgress(1/6, detail = "Creating Maps")
   #Generating Isolation Map Plot (by @ggautreau)
-  dat <- data.frame(x = numeric(0), y = numeric(0))
-  
-  isolation_map <- function(world="world"){
-    #world = "world" means a atlantic-centred map
-    #world = "world2" means a pacific-centred map
-    data = data %>%
-      mutate(Country=recode(Country,"Cabo Verde"="Cape Verde","Congo, Democratic Republic of the"="Democratic Republic of the Congo","Congo, Republic of the"="Republic of Congo","Côte d’Ivoire"="Ivory Coast","East Timor (Timor-Leste)"="Timor-Leste","Korea, North"="North Korea","Korea, South"="South Korea","Micronesia, Federated States of"="Micronesia","Sudan, South"="South Sudan","The Bahamas"="Bahamas","United Kingdom"="UK","United States"="USA"))
+  isolation_map <- function(){
     
     processed_data = data %>%
       mutate(isolation_score=recode(Dem_islolation,"Life carries on as usual"=0,"Life carries on with minor changes"=1,"Isolated"=2,"Isolated in medical facility of similar location"=3,.default=as.numeric(NA))) %>%
       group_by(Country) %>%
       summarise(mean_isolation_score = mean(isolation_score,na.rm=T),sd_isolation_score = sd(isolation_score,na.rm=T),
-                nb_answers = n())
+                nb_answers = n()) %>%
+      mutate(
+        Country_iso3c = countrycode(
+          sourcevar = Country,
+          origin = "country.name.en",
+          destination = "iso3c",
+          custom_match = c(
+            "Sudan, South" = "SSD",
+            "other" = NA,
+            "Kosovo" = NA
+          )
+        ),
+        Country_code = countrycode(
+          sourcevar = Country_iso3c,
+          origin = "iso3c",
+          destination = "un",
+          custom_match = c("SSD" = 728, "TWN" = 158)
+        ),
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
+        life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
+      )
     
-    processed_world_map = get_world_map(world)
-    processed_world_map = left_join(processed_world_map,processed_data, by=c("country"="Country")) %>%
-      mutate(country_text = paste0(
-        "Country: ", country, "\n",
-        "Region: ", region, "\n",
-        "Mean isolation score: ", round(mean_isolation_score,2), "\n",
-        "Std dev. isolation score: ", round(sd_isolation_score,2), "\n",
-        "# of answers: ", nb_answers))
     
-    p <- ggplot(as.data.frame(processed_world_map)) +
-      geom_polygon(aes( x = long, y = lat, group = group, fill = mean_isolation_score, text = country_text), colour = "black", size = 0.2)+
-      scale_fill_distiller(palette="RdYlBu", name = "isolation score", limits = c(0, 3), breaks = c(0,1,2,3), labels= c("0 - Life carries on as usual","1 - Life carries on with minor changes","2 - Isolated","3 - Isolated in medical facility of similar location"),values=c(0,0.45,0.55,1))+
-      theme_void()
+    fig <- plot_geo(processed_data) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_isolation_score,
+        color = ~ mean_isolation_score,
+        hovertemplate = ~ paste0(
+          "<b>Mean isolation score: ",
+          round(mean_isolation_score, 2),
+          "\n",
+          "Std dev. isolation score: ",
+          round(sd_isolation_score, 2),
+          "</b>\n",
+          "Population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = list(c(0, 0.5, 1), c('rgb(255, 255, 77)', 'rgb(255, 210, 77)', 'rgb(230, 0, 0)')),
+        zmin = 0,
+        zmax = 3,
+        colorbar = list(
+          title = 'Isolation score',
+          tickvals = 0:3,
+          ticktext = c(
+            "0 - Life carries on as usual",
+            "1 - Life carries on with minor changes",
+            "2 - Isolated",
+            "3 - Isolated in medical facility of similar location"
+          )
+        )
+      ) 
+    
+    return(fig)
     
   }
-  if(file.exists("world_maps_isolation.Rdata"))
-  {
-    load("world_maps_isolation.Rdata")
-  }else{
-    world_map_1_isolation <- ggplotly(isolation_map(), tooltip="text")
-    world_map_2_isolation <- ggplotly(isolation_map(world="world2"), tooltip="text")
-    
-    save(world_map_1_isolation, world_map_2_isolation,file="world_maps_isolation.Rdata")
-  }
+  fig_isolation = isolation_map()
   
-  incProgress(1/6, detail = "Loading Stress Map (118Mb)")
-  #Function for Generating Stress Map Plot (by @ggautreau)
-  stress_map <- function(world="world"){
-    #world = "world" means a atlantic-centred map
-    #world = "world2" means a pacific-centred map
-    data = data %>%
-      mutate(Country=recode(Country,"Cabo Verde"="Cape Verde","Congo, Democratic Republic of the"="Democratic Republic of the Congo","Congo, Republic of the"="Republic of Congo","Côte d’Ivoire"="Ivory Coast","East Timor (Timor-Leste)"="Timor-Leste","Korea, North"="North Korea","Korea, South"="South Korea","Micronesia, Federated States of"="Micronesia","Sudan, South"="South Sudan","The Bahamas"="Bahamas","United Kingdom"="UK","United States"="USA"))
+    #Function for Generating Stress Map Plot (by @ggautreau)
+  stress_map <- function(){
     
     processed_data = data %>%
       group_by(Country) %>%
       summarise(mean_stress_score = mean(PSS10_avg,na.rm=T),sd_stress_score = sd(PSS10_avg,na.rm=T),
-                nb_answers = n())
+                nb_answers = n()) %>%
+      mutate(
+        Country_iso3c = countrycode(
+          sourcevar = Country,
+          origin = "country.name.en",
+          destination = "iso3c",
+          custom_match = c(
+            "Sudan, South" = "SSD",
+            "other" = NA,
+            "Kosovo" = NA
+          )
+        ),
+        Country_code = countrycode(
+          sourcevar = Country_iso3c,
+          origin = "iso3c",
+          destination = "un",
+          custom_match = c("SSD" = 728, "TWN" = 158)
+        ),
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
+        life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
+      )
     
-    processed_world_map = get_world_map(world)
-    processed_world_map = left_join(processed_world_map,processed_data, by=c("country"="Country")) %>%
-      mutate(country_text = paste0(
-        "Country: ", country, "\n",
-        "Region: ", region, "\n",
-        "Mean stress score: ", round(mean_stress_score,2), "\n",
-        "Std dev. stress score: ", round(sd_stress_score,2), "\n",
-        "# of answers: ", nb_answers))
+    fig <- plot_geo(processed_data) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_stress_score,
+        color = ~ mean_stress_score,
+        hovertemplate = ~ paste0(
+          "<b>Mean stress score: ",
+          round(mean_stress_score, 2),
+          "\n",
+          "Std dev. stress score: ",
+          round(sd_stress_score, 2),
+          "</b>\n",
+          "Population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = 'RdBu'
+      ) 
     
-    p <- ggplot(as.data.frame(processed_world_map)) +
-      geom_polygon(aes( x = long, y = lat, group = group, fill = mean_stress_score, text = country_text), colour = "black", size = 0.2)+
-      scale_fill_distiller(palette="RdYlBu", name = "stress score")+
-      theme_void()
+    return(fig)
+    
   }
+  fig_stress = stress_map()
   
-  if(file.exists("world_maps_stress.Rdata"))
-  {
-    load("world_maps_stress.Rdata")
-  }else{
-    world_map_1_stress <- ggplotly(stress_map(), tooltip="text")
-    world_map_2_stress <- ggplotly(stress_map(world="world2"), tooltip="text")
-    
-    save(world_map_1_stress, world_map_2_stress,file="world_maps_stress.Rdata")
-  }
-  
-  incProgress(1/6, detail = "Loading Trust Map (169Mb)")
   #Function for Generating Trust Map Plot (by @ggautreau)
-  trust_map <- function(world="world"){
-    #world = "world" means a atlantic-centred map
-    #world = "world2" means a pacific-centred map
+  trust_map <- function(){
     
     processed_data = data %>%
       group_by(Country) %>%
       summarise(mean_trust_score = mean(Trust_countrymeasure,na.rm=T), sd_trust_score = sd(Trust_countrymeasure,na.rm=T),
-                nb_answers = n())
+                nb_answers = n()) %>%
+      mutate(
+        Country_iso3c = countrycode(
+          sourcevar = Country,
+          origin = "country.name.en",
+          destination = "iso3c",
+          custom_match = c(
+            "Sudan, South" = "SSD",
+            "other" = NA,
+            "Kosovo" = NA
+          )
+        ),
+        Country_code = countrycode(
+          sourcevar = Country_iso3c,
+          origin = "iso3c",
+          destination = "un",
+          custom_match = c("SSD" = 728, "TWN" = 158)
+        ),
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
+        life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
+      )
     
-    processed_world_map = get_world_map(world)
-    processed_world_map = left_join(processed_world_map,processed_data, by=c("country"="Country")) %>%
-      mutate(country_text = paste0(
-        "Country: ", country, "\n",
-        "Region: ", region, "\n",
-        "Mean trust score: ", round(mean_trust_score,2), "\n",
-        "Std dev. trust score: ", round(sd_trust_score,2), "\n",
-        "# of answers: ", nb_answers))
+    fig <- plot_geo(processed_data) %>%
+      add_trace(
+        locations =  ~ Country_iso3c,
+        z = ~ mean_trust_score,
+        color = ~ mean_trust_score,
+        hovertemplate = ~ paste0(
+          "<b>Mean trust score: ",
+          round(mean_trust_score, 2),
+          "\n",
+          "Std dev. trust score: ",
+          round(sd_trust_score, 2),
+          "</b>\n",
+          "Population size: ",
+          format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
+          "\n",
+          "# of answers: ",
+          nb_answers,
+          '<extra>',
+          Country,
+          '</extra>'
+        ),
+        colorscale = list(c(0, 0.5, 1), c('rgb(51, 153, 255)', 'rgb(128, 255, 128)', 'rgb(255, 51, 51)')),
+        zmin = 0,
+        zmax = 10,
+        colorbar = list(
+          title = 'All things considered, do you believe that\nthe government has taken the appropriate\n measures in response to Coronavirus ?',
+          tickvals = 0:10,
+          ticktext = c(
+            "0 - Too little",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5 - Appropriate",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10 - Too mush"
+          )
+        )
+      ) 
     
-    p <- ggplot(as.data.frame(processed_world_map)) +
-      geom_polygon(aes( x = long, y = lat, group = group, fill = mean_trust_score, text = country_text), colour = "black", size = 0.2)+
-      scale_fill_distiller(palette="RdYlBu", name = "All things considered, do you believe that\nthe government has taken the appropriate\n measures in response to Coronavirus ?", limits = c(0, 10), breaks = 0:10, labels= c("0 - Too little","1","2","3","4","5 - Appropriate","6","7","8","9","10 - Too mush")) +
-      theme_void()
+    return(fig)
   }
-  
-  if(file.exists("world_maps_trust.Rdata"))
-  {
-    load("world_maps_trust.Rdata")
-  }else{
-    world_map_1_trust <- ggplotly(trust_map(), tooltip="text")
-    world_map_2_trust <- ggplotly(trust_map(world="world2"), tooltip="text")
-    
-    save(world_map_1_trust,
-         world_map_2_trust,
-         file="world_maps_trust.Rdata")
-  }
+  fig_trust = trust_map()
   
   #Function for Generating Concern Map Plot (by @ggautreau) 
   concern_map <- function() {
@@ -192,7 +290,9 @@ server <- function(input, output, session) {
           destination = "un",
           custom_match = c("SSD" = 728, "TWN" = 158)
         ),
-        population_2020 = pop[match(Country_code, pop$country_code), "2020"]
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
+        life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
       )
     
     
@@ -232,8 +332,10 @@ server <- function(input, output, session) {
           "Std dev. concern score for other countries: ",
           round(sd_concern_score_othercountries, 2),
           "\n",
-          "population size: ",
+          "Population size: ",
           format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
           "\n",
           "# of answers: ",
           nb_answers,
@@ -292,8 +394,10 @@ server <- function(input, output, session) {
           "Std dev. concern score for other countries: ",
           round(sd_concern_score_othercountries, 2),
           "\n",
-          "population size: ",
+          "Population size: ",
           format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
           "\n",
           "# of answers: ",
           nb_answers,
@@ -353,8 +457,10 @@ server <- function(input, output, session) {
           "Std dev. concern score for other countries: ",
           round(sd_concern_score_othercountries, 2),
           "\n",
-          "population size: ",
+          "Population size: ",
           format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
           "\n",
           "# of answers: ",
           nb_answers,
@@ -414,8 +520,10 @@ server <- function(input, output, session) {
           "Std dev. concern score for other countries: ",
           round(sd_concern_score_othercountries, 2),
           "\n",
-          "population size: ",
+          "Population size: ",
           format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
           "\n",
           "# of answers: ",
           nb_answers,
@@ -475,8 +583,10 @@ server <- function(input, output, session) {
           "Std dev. concern score for other countries: ",
           round(sd_concern_score_othercountries, 2),
           "</b>\n",
-          "population size: ",
+          "Population size: ",
           format(round(population_2020), big.mark = " "),
+          "\n",
+          "Life expectancy: Male=", round(life_expectancy_M,1), " ; Female=", round(life_expectancy_F,1),
           "\n",
           "# of answers: ",
           nb_answers,
@@ -539,13 +649,7 @@ server <- function(input, output, session) {
     return(fig)
     
   }
-  
   fig_concern = concern_map()
-  
-  
-  incProgress(1/6, detail = "Creating Concern Map")
-  #we create one default map
-  world_map_1_concern_ORIGIN <- ggplotly(concern_map(who="himself"))
   
   })
   
@@ -656,96 +760,56 @@ server <- function(input, output, session) {
   # Dynamic Part for the "Results" tab ----
   observeEvent({
     input$MapRegionChoice
-    input$ConcernChoice
   },{
     
     #Creating Concern maps
     withProgress(message = 'Plotting maps', value = 0,{
-    
-    if(input$MapRegionChoice==6 || input$ConcernChoice>1) #testing if choice is default
-    { #Not default : creating the map
-      incProgress(1/3, detail = "Creating Concern Map")
-      
-      if(input$MapRegionChoice<6){
-        world_map_1_concern <- switch(input$ConcernChoice,
-                                      "1"= ggplotly(concern_map(who="himself"), tooltip="text"),
-                                      "2"= ggplotly(concern_map(who="family"), tooltip="text"),
-                                      "3"= ggplotly(concern_map(who="friend"), tooltip="text"),
-                                      "4"= ggplotly(concern_map(who="country"), tooltip="text"),
-                                      "5"= ggplotly(concern_map(who="othercountries"), tooltip="text")
-        )
-      }else{
-        world_map_2_concern <- switch(input$ConcernChoice,
-                                      "1"= ggplotly(concern_map(who="himself" ,world="world2"), tooltip="text"),
-                                      "2"= ggplotly(concern_map(who="family",world="world2"), tooltip="text"),
-                                      "3"= ggplotly(concern_map(who="friend",world="world2"), tooltip="text"),
-                                      "4"= ggplotly(concern_map(who="country",world="world2"), tooltip="text"),
-                                      "5"= ggplotly(concern_map(who="othercountries",world="world2"), tooltip="text")
-        )
-      }
-    }else{ #default: using default map
-      world_map_1_concern <- world_map_1_concern_ORIGIN
-    }
     
     # Sending plots to ui
     incProgress(1/3, detail = "Sending plots to UI")
     if(TRUE) {
       switch(input$MapRegionChoice,
              "1" = { #1 = World
-               output$PlotlyIsolationMap<-renderPlotly({world_map_1_isolation})
-               output$PlotlyStressMap <- renderPlotly({world_map_1_stress} )
-               output$PlotlyTrustMap <- renderPlotly({world_map_1_trust} )
-               output$PlotlyCoronaConcernMap<-renderPlotly({world_map_1_concern})
+               output$PlotlyIsolationMap     <- renderPlotly({ fig_isolation })
+               output$PlotlyStressMap        <- renderPlotly({ fig_stress    })
+               output$PlotlyTrustMap         <- renderPlotly({ fig_trust     })
+               output$PlotlyCoronaConcernMap <- renderPlotly({ fig_concern   })
              },
              "2" = { #2 Africa 
-               output$PlotlyStressMap <- renderPlotly({ world_map_1_stress %>% 
-                   layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
-               output$PlotlyIsolationMap<-renderPlotly({ world_map_1_isolation %>% 
-                   layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
-               output$PlotlyTrustMap <- renderPlotly({world_map_1_trust %>% 
-                   layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({world_map_1_concern %>% 
-                   layout(xaxis=list(range = c(-25,60)),yaxis=list(range = c(-40,40))) })
+               output$PlotlyStressMap        <- renderPlotly({ fig_stress    %>% layout(geo = list(scope = 'africa')) })
+               output$PlotlyIsolationMap     <- renderPlotly({ fig_isolation %>% layout(geo = list(scope = 'africa')) })
+               output$PlotlyTrustMap         <- renderPlotly({ fig_trust     %>% layout(geo = list(scope = 'africa')) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({ fig_concern   %>% layout(geo = list(scope = 'africa')) })
              },
-             "3" = { #3 America
-               output$PlotlyStressMap <- renderPlotly({ world_map_1_stress %>% 
-                   layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80))) })
-               output$PlotlyIsolationMap<-renderPlotly({ world_map_1_isolation %>%
-                   layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80)))  })
-               output$PlotlyTrustMap <- renderPlotly({world_map_1_trust %>% 
-                   layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80))) })                 
-               output$PlotlyCoronaConcernMap <- renderPlotly({world_map_1_concern %>% 
-                   layout(xaxis=list(range = c(-180,-20)),yaxis=list(range =  c(-60,80))) })                     
+             "3" = { #3 Asia
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'asia')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'asia')) })
+               output$PlotlyTrustMap         <- renderPlotly({ fig_trust    %>% layout(geo = list(scope = 'asia')) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'asia')) })
              },
-             "4" = { #4 Asia
-               output$PlotlyStressMap <- renderPlotly({ world_map_1_stress %>%
-                   layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
-               output$PlotlyIsolationMap<-renderPlotly({world_map_1_isolation %>% 
-                   layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
-               output$PlotlyTrustMap <- renderPlotly({world_map_1_trust %>% 
-                   layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({world_map_1_concern %>% 
-                   layout(xaxis=list(range = c(25,191)),yaxis=list(range = c(-15,90))) })
+             "4" = { #4 Europe
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'europe')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'europe')) })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(scope = 'europe')) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'europe')) })
              },
-             "5" = { #5 Europe
-               output$PlotlyStressMap <- renderPlotly({ world_map_1_stress %>%
-                   layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
-               output$PlotlyIsolationMap<-renderPlotly({ world_map_1_isolation %>% 
-                   layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
-               output$PlotlyTrustMap <- renderPlotly({world_map_1_trust %>% 
-                   layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({world_map_1_concern %>% 
-                   layout(xaxis=list(range = c(-25,50)),yaxis=list(range = c(33,72))) })
+             "5" = { #5 North America
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'north america')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'north america'))  })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(scope = 'north america')) })                 
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'north america')) })                     
              },
-             "6" = { #Oceania
-               output$PlotlyStressMap <- renderPlotly({ world_map_2_stress %>% 
-                   layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })
-               output$PlotlyIsolationMap <- renderPlotly({world_map_2_isolation %>%
-                   layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })
-               output$PlotlyTrustMap <- renderPlotly({world_map_2_trust%>% 
-                   layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({world_map_2_concern %>% 
-                   layout(xaxis=list(range = c(100,300)),yaxis=list(range = c(-80,80))) })        
+             "6" = { #6 South America
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'south america')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'south america')) })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(scope = 'south america')) })                 
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'north america')) })                     
+             },
+             "7" = { #7 Oceania
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })        
              }
       )
     }
