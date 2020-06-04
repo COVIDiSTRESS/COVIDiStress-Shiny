@@ -1,20 +1,14 @@
 server <- function(input, output, session) {
   
   withProgress(message = 'Loading data and loading maps', value = 0,{
-  incProgress(1/6, detail = "Loading survey data (70 Mb)")
+  incProgress(1/6, detail = "Loading survey data (13 Mb)")
   # Loading Data ----
   
     
   args <- commandArgs(TRUE)
-  args <- ifelse(length(args)==0,"COVIDiSTRESS_May_30_clean.csv",args)
-  data = read.csv(args, header=T, stringsAsFactors=F)
-  
-  #data = read.delim("COVIDiSTRESS_May_30_clean.dat", header=T, stringsAsFactors=F)
-  
-  data = data %>%
-    mutate(Country=recode(Country,"Cabo Verde"="Cape Verde","Congo, Democratic Republic of the"="Democratic Republic of the Congo","Congo, Republic of the"="Republic of Congo","Côte d’Ivoire"="Ivory Coast","East Timor (Timor-Leste)"="Timor-Leste","Korea, North"="North Korea","Korea, South"="South Korea","Micronesia, Federated States of"="Micronesia","Sudan, South"="South Sudan","The Bahamas"="Bahamas","United Kingdom"="UK","United States"="USA"))
-  
-  
+  args <- ifelse(length(args)==0,"COVIDiSTRESS_May_30_clean.dat",args)
+  load(args)
+
   # Creating Variables ----
   
   if(file.exists("Unique_CountryName_full.csv"))
