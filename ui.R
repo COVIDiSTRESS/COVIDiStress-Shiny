@@ -14,7 +14,6 @@ library(markdown)
 data(pop)
 data(e0F)
 data(e0M)
-source("get_world_maps.R")
 
 #### UI ----
 
@@ -47,7 +46,7 @@ ui <- fluidPage(
                           selectInput('MapRegionChoice', h3("Select Region"),
                                       choices = list("World" = 1, "Africa" = 2, "Asia" = 3, "Europe" = 4, 
                                                      "North America" = 5, "South America" = 6, "Oceania" = 7), 
-                                      selected = 1)
+                                      selected = 1), width=1
                         ),
                         mainPanel(
                           tabsetPanel(
@@ -55,7 +54,7 @@ ui <- fluidPage(
                             tabPanel("Stress Score", plotlyOutput("PlotlyStressMap")),
                             tabPanel("Trust Score", plotlyOutput("PlotlyTrustMap")),
                             tabPanel("Corona Concern Score", plotlyOutput("PlotlyCoronaConcernMap"))
-                          )
+                          ), width=11
                         )
                       )
              ),

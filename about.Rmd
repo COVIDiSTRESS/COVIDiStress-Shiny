@@ -3,3 +3,5 @@ The COVIDiSTRESS global survey is an international collaborative undertaking for
 In particular, the survey focuses on psychological stress, compliance with behavioral guidelines to slow the spread of Coronavirus, and trust in governmental institutions and their preventive measures, but multiple further items and scales are included for descriptive statistics, further analysis and comparative mapping between participating countries.
 
 Find more information at [https://covidistress.github.io/](https://covidistress.github.io/).
+
+The source code of this Shiny application is available at [https://github.com/COVIDiSTRESS/COVIDiStress-Shiny](https://github.com/COVIDiSTRESS/COVIDiStress-Shiny).

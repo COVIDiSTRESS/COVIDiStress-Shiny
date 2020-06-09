@@ -1,29 +1,26 @@
+args <- commandArgs(TRUE)
+args <- ifelse(length(args)==0,"COVIDiSTRESS_clean.dat",args)
+load(args)
+
+# Creating Variables ----
+Unique_CountryName_full <- c()
+if(file.exists("Unique_CountryName_full.csv"))
+{
+  Unique_CountryName_full <- read.csv("Unique_CountryName_full.csv", header = T, stringsAsFactors = F)$x
+}else{
+  Unique_CountryName_full <- unique(toTitleCase(tolower(data$Country)))
+  Unique_CountryName_full[Unique_CountryName_full=="Usa"] <- "USA"
+  Unique_CountryName_full <- sort(Unique_CountryName_full[Unique_CountryName_full!=""])
+  Unique_CountryName_full <- c(Unique_CountryName_full, "World")
+  #execute the following line to speed up the process (not generate country names at every run)
+  #write.csv(Unique_CountryName_full,"Unique_CountryName_full.csv", row.names = TRUE)
+}
+
 server <- function(input, output, session) {
   
-  withProgress(message = 'Loading data and loading maps', value = 0,{
-  incProgress(1/6, detail = "Loading survey data (13 Mb)")
+  withProgress(message = 'Loading maps', value = 0,{
   # Loading Data ----
-  
-    
-  args <- commandArgs(TRUE)
-  args <- ifelse(length(args)==0,"COVIDiSTRESS_May_30_clean.dat",args)
-  load(args)
-
-  # Creating Variables ----
-  
-  if(file.exists("Unique_CountryName_full.csv"))
-  {
-    Unique_CountryName_full <- read.csv("Unique_CountryName_full.csv", header = T, stringsAsFactors = F)$x
-  }else{
-    Unique_CountryName_full <- unique(toTitleCase(tolower(data$Country)))
-    Unique_CountryName_full[Unique_CountryName_full=="Usa"] <- "USA"
-    Unique_CountryName_full <- sort(Unique_CountryName_full[Unique_CountryName_full!=""])
-    Unique_CountryName_full <- c(Unique_CountryName_full, "World")
-    #execute the following line to speed up the process (not generate country names at every run)
-    #write.csv(Unique_CountryName_full,"Unique_CountryName_full.csv", row.names = TRUE)
-  }
-  
-  updateSelectizeInput(session, 'CountryChoice', choices = Unique_CountryName_full, server = TRUE,
+   updateSelectizeInput(session, 'CountryChoice', choices = Unique_CountryName_full, server = TRUE,
                        selected=c("France", "Italy"))
 
   
@@ -54,7 +51,7 @@ server <- function(input, output, session) {
           destination = "un",
           custom_match = c("SSD" = 728, "TWN" = 158)
         ),
-        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"] * 1000,
         life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
         life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
       )
@@ -127,7 +124,7 @@ server <- function(input, output, session) {
           destination = "un",
           custom_match = c("SSD" = 728, "TWN" = 158)
         ),
-        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"] * 1000,
         life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
         life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
       )
@@ -155,8 +152,8 @@ server <- function(input, output, session) {
           Country,
           '</extra>'
         ),
-        colorscale = 'RdBu'
-      ) 
+        colorscale = 'RdBu',
+        colorbar = list(title = 'Stress score')) 
     
     return(fig)
     
@@ -187,7 +184,7 @@ server <- function(input, output, session) {
           destination = "un",
           custom_match = c("SSD" = 728, "TWN" = 158)
         ),
-        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"] * 1000,
         life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
         life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
       )
@@ -232,10 +229,10 @@ server <- function(input, output, session) {
             "7",
             "8",
             "9",
-            "10 - Too mush"
+            "10 - Too much"
           )
         )
-      ) 
+      )
     
     return(fig)
   }
@@ -284,7 +281,7 @@ server <- function(input, output, session) {
           destination = "un",
           custom_match = c("SSD" = 728, "TWN" = 158)
         ),
-        population_2020 = pop[match(Country_code, pop$country_code), "2020"],
+        population_2020 = pop[match(Country_code, pop$country_code), "2020"] * 1000,
         life_expectancy_M = e0M[match(Country_code, e0M$country_code), "2015-2020"],
         life_expectancy_F = e0F[match(Country_code, e0F$country_code), "2015-2020"],
       )
@@ -764,46 +761,46 @@ server <- function(input, output, session) {
     if(TRUE) {
       switch(input$MapRegionChoice,
              "1" = { #1 = World
-               output$PlotlyIsolationMap     <- renderPlotly({ fig_isolation })
-               output$PlotlyStressMap        <- renderPlotly({ fig_stress    })
-               output$PlotlyTrustMap         <- renderPlotly({ fig_trust     })
-               output$PlotlyCoronaConcernMap <- renderPlotly({ fig_concern   })
+               output$PlotlyIsolationMap     <- renderPlotly({ fig_isolation %>% layout(height = 800)})
+               output$PlotlyStressMap        <- renderPlotly({ fig_stress    %>% layout(height = 800)})
+               output$PlotlyTrustMap         <- renderPlotly({ fig_trust     %>% layout(height = 800)})
+               output$PlotlyCoronaConcernMap <- renderPlotly({ fig_concern   %>% layout(height = 800)})
              },
              "2" = { #2 Africa 
-               output$PlotlyStressMap        <- renderPlotly({ fig_stress    %>% layout(geo = list(scope = 'africa')) })
-               output$PlotlyIsolationMap     <- renderPlotly({ fig_isolation %>% layout(geo = list(scope = 'africa')) })
-               output$PlotlyTrustMap         <- renderPlotly({ fig_trust     %>% layout(geo = list(scope = 'africa')) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({ fig_concern   %>% layout(geo = list(scope = 'africa')) })
+               output$PlotlyStressMap        <- renderPlotly({ fig_stress    %>% layout(height = 800, geo = list(scope = 'africa')) })
+               output$PlotlyIsolationMap     <- renderPlotly({ fig_isolation %>% layout(height = 800, geo = list(scope = 'africa')) })
+               output$PlotlyTrustMap         <- renderPlotly({ fig_trust     %>% layout(height = 800, geo = list(scope = 'africa')) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({ fig_concern   %>% layout(height = 800, geo = list(scope = 'africa')) })
              },
              "3" = { #3 Asia
-               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'asia')) })
-               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'asia')) })
-               output$PlotlyTrustMap         <- renderPlotly({ fig_trust    %>% layout(geo = list(scope = 'asia')) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'asia')) })
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(height = 800, geo = list(scope = 'asia')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(height = 800, geo = list(scope = 'asia')) })
+               output$PlotlyTrustMap         <- renderPlotly({ fig_trust    %>% layout(height = 800, geo = list(scope = 'asia')) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(height = 800, geo = list(scope = 'asia')) })
              },
              "4" = { #4 Europe
-               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'europe')) })
-               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'europe')) })
-               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(scope = 'europe')) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'europe')) })
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(height = 800, geo = list(scope = 'europe')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(height = 800, geo = list(scope = 'europe')) })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(height = 800, geo = list(scope = 'europe')) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(height = 800, geo = list(scope = 'europe')) })
              },
              "5" = { #5 North America
-               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'north america')) })
-               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'north america'))  })
-               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(scope = 'north america')) })                 
-               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'north america')) })                     
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(height = 800, geo = list(scope = 'north america')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(height = 800, geo = list(scope = 'north america'))  })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(height = 800, geo = list(scope = 'north america')) })                 
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(height = 800, geo = list(scope = 'north america')) })                     
              },
              "6" = { #6 South America
-               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(scope = 'south america')) })
-               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(scope = 'south america')) })
-               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(scope = 'south america')) })                 
-               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(scope = 'north america')) })                     
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(height = 800, geo = list(scope = 'south america')) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(height = 800, geo = list(scope = 'south america')) })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(height = 800, geo = list(scope = 'south america')) })                 
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(height = 800, geo = list(scope = 'north america')) })                     
              },
              "7" = { #7 Oceania
-               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
-               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
-               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
-               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })        
+               output$PlotlyStressMap        <- renderPlotly({fig_stress    %>% layout(height = 800, geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
+               output$PlotlyIsolationMap     <- renderPlotly({fig_isolation %>% layout(height = 800, geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
+               output$PlotlyTrustMap         <- renderPlotly({fig_trust     %>% layout(height = 800, geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })
+               output$PlotlyCoronaConcernMap <- renderPlotly({fig_concern   %>% layout(height = 800, geo = list(projection = list(rotation = list(lon=-180,lat=-20),scale=1.7))) })        
              }
       )
     }
